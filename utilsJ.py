@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import time
+import os
+
 
 # 内部函数
 ## 以Backtrader为准调整Dataframe样式
@@ -60,6 +62,8 @@ def stock_tushare(token, stock_code,
 def index_to_csv_tushare(token, stock_index, time_sleep=0.5,
                          start=datetime.datetime.now()-datetime.timedelta(days=365),
                          end=datetime.datetime.now(), fpath='.\\Data\\'):
+    if not os.path.exists(fpath.rstrip('\\')):
+        os.mkdir(fpath.rstrip('\\'))
     pro = ts.pro_api(token)
     index_list = np.unique(pro.index_weight(index_code=stock_index,
                                             start_date=start.strftime('%Y%m%d'),
@@ -69,3 +73,4 @@ def index_to_csv_tushare(token, stock_index, time_sleep=0.5,
         time.sleep(time_sleep)
         df.to_csv(fpath + s_code + '.csv')
     return
+    
