@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import time
+import threading
 import os
 
 
@@ -73,4 +74,17 @@ def index_to_csv_tushare(token, stock_index, time_sleep=0.5,
         time.sleep(time_sleep)
         df.to_csv(fpath + s_code + '.csv')
     return
-    
+
+
+class MyThread(threading.Thread):
+    def __init__(self, func, args):
+        threading.Thread.__init__(self)
+        self.func = func
+        self.args = args
+        self.result = None
+
+    def run(self):
+        self.result = self.func(*self.args)
+
+    def getResult(self):
+        return self.result
