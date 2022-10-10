@@ -53,10 +53,10 @@ def stock_tushare(token, stock_code,
                   end=datetime.datetime.now()):
     ts.set_token(token)
     pro = ts.pro_api()
-    df = pro.daily(ts_code=stock_code,
-                   fields='trade_date,open,high,low,close,vol',
-                   start_date=start.strftime('%Y%m%d'),
-                   end_date=end.strftime('%Y%m%d'))
+    df = ts.pro_bar(ts_code=stock_code,
+                    adj='qfq',
+                    start_date=start.strftime('%Y%m%d'),
+                    end_date=end.strftime('%Y%m%d'))[['trade_date','open','high','low','close','vol']]
     return bt_mod(df)
 
 
