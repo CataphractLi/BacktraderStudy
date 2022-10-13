@@ -20,7 +20,6 @@ def bt_mod(data):
     data.drop('trade_date', axis=1, inplace = True)
     data = data.astype('float')
     data.rename(columns = {'vol':'volume'}, inplace = True)
-    data['openinterest'] = 0
     return data.iloc[::-1]
 
 
@@ -57,6 +56,7 @@ def stock_tushare(token, stock_code,
                     adj='qfq',
                     start_date=start.strftime('%Y%m%d'),
                     end_date=end.strftime('%Y%m%d'))[['trade_date','open','high','low','close','vol']]
+    df['openinterest'] = 0
     return bt_mod(df)
 
 
@@ -74,6 +74,22 @@ def index_to_csv_tushare(token, stock_index, time_sleep=0.5,
         time.sleep(time_sleep)
         df.to_csv(fpath + s_code + '.csv')
     return
+
+def stock_finance(token, stock_code,
+                  start=datetime.datetime.now()-datetime.timedelta(days=365),
+                  end=datetime.datetime.now()):
+
+    ts.set_token(token)
+    pro = ts.pro_api()
+    df = pro.fina_indicator(ts_code=stock_code, 
+                            start_date=start.strftime('%Y%m%d'),
+                            end_date=end.strftime('%Y%m%d'))[['end_date', 'eps', 'netprofit_margin', 'roe_dt']].dropna().drop_duplicates()
+    df.rename(columns = {'end_date':'trade_date'}, inplace = True)
+    df['trade_date'] = pd.to_datetime(df.trade_date)
+    df.index=pd.to_datetime(df.trade_date)
+    df.drop('trade_date', axis=1, inplace = True)
+    df = df.astype('float')
+    return df[::-1]
 
 
 class MyThread(threading.Thread):
