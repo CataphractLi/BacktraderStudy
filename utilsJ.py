@@ -78,7 +78,6 @@ def index_to_csv_tushare(token, stock_index, time_sleep=0.5,
 def stock_finance(token, stock_code,
                   start=datetime.datetime.now()-datetime.timedelta(days=365),
                   end=datetime.datetime.now()):
-
     ts.set_token(token)
     pro = ts.pro_api()
     df = pro.fina_indicator(ts_code=stock_code, 
@@ -90,6 +89,23 @@ def stock_finance(token, stock_code,
     df.drop('trade_date', axis=1, inplace = True)
     df = df.astype('float')
     return df[::-1]
+
+def stock_finace_full(token, stock_code,
+                  fields=['end_date', 'eps', 'netprofit_margin', 'roe_dt'],
+                  start=datetime.datetime.now()-datetime.timedelta(days=365),
+                  end=datetime.datetime.now()):
+    ts.set_token(token)
+    pro = ts.pro_api()
+    df = pro.fina_indicator(ts_code=stock_code, 
+                            start_date=start.strftime('%Y%m%d'),
+                            end_date=end.strftime('%Y%m%d'))[fields].dropna().drop_duplicates()
+    df.rename(columns = {'end_date':'trade_date'}, inplace = True)
+    df['trade_date'] = pd.to_datetime(df.trade_date)
+    df.index=pd.to_datetime(df.trade_date)
+    df.drop('trade_date', axis=1, inplace = True)
+#    df = df.astype('float')
+    return df[::-1]
+
 
 
 class MyThread(threading.Thread):
