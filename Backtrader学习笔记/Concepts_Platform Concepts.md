@@ -130,3 +130,90 @@ def next(self):
 ```
 
 ### Slicing
+
+Backtrader不支持常规切片操作，例如`myslice = self.my_sma[0:-1]`。 如果想要获取切片值，需要使用`myslice = self.my_sma.get(ago=0, size=10)`（获取最新10个值）。其中`ago`默认值为0。
+
+### Lines: DELAYED indexing
+
+在`next`方法中，可以通过`[]`来获取对应的个值，但是在`__init__`中，需要使用`()`来对数据线进行索引取值。例如：
+
+```
+class MyStrategy(bt.Strategy):
+    params = dict(period=20)
+
+    def __init__(self):
+
+        self.movav = btind.SimpleMovingAverage(self.data, period=self.p.period)
+        self.cmpval = self.data.close(-1) > self.sma
+
+    def next(self):
+        if self.cmpval[0]:
+            print('Previous close is higher than the moving average')
+```
+
+在这个例子中，`self.data.close(-1)`中的括号代表讲数据线中的数据全部推后一位，再与`self.sma`比较，即昨日收盘价是否大于20日均线，如有，则`self.cmpval=1`，如无，则`self.cmpval=0`。
+
+### Lines Coupling
+
+如果需要比较不同时间跨度的数据（长度不同），可以在`__init__`方法中加入`()`但是括号里面不需要填入数字。例如需要比较日数据和周数据：
+
+```
+class MyStrategy(bt.Strategy):
+    params = dict(period=20)
+
+    def __init__(self):
+
+        # data0 is a daily data
+        sma0 = btind.SMA(self.data0, period=15)  # 15 days sma
+        # data1 is a weekly data
+        sma1 = btind.SMA(self.data1, period=5)  # 5 weeks sma
+
+        self.buysig = sma0 > sma1()
+
+    def next(self):
+        if self.buysig[0]:
+            print('daily sma is greater than weekly sma1')
+```
+
+由于`sma1`数据量较小, 因此加入括号实现Coupling，将其长度拷贝扩展到sma0上。
+
+### Operators, using natural constructs
+
+若想用逻辑运算创建额外的数据线，则除了`>`、`<`和`==`之外，在`__init__`方法中需要使用Backtrader内置的逻辑运算符(因为Python原生的`and`等不属于运算符)：
+
++ and -> And
++ or -> Or
++ if -> If
++ any -> Any
++ all -> All
++ cmp -> Cmp
++ max -> Max
++ min -> Min
++ sum -> Sum
++ reduce -> Reduce
+
+
+例子1
+```
+class MyStrategy(bt.Strategy):
+
+    def __init__(self):
+
+        sma1 = btind.SMA(self.data.close, period=15)
+        self.buysig = bt.And(sma1 > self.data.close, sma1 > self.data.high)
+
+    def next(self):
+        if self.buysig[0]:
+            pass  # do something here
+```
+
+例子2
+```
+class MyStrategy(bt.Strategy):
+
+    def __init__(self):
+
+        sma1 = btind.SMA(self.data.close, period=15)
+        high_or_30 = bt.If(sma1 > self.data.close, 30.0, self.data.high)
+        sma2 = btind.SMA(high_or_30, period=15)
+```
