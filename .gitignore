@@ -1,9 +1,6 @@
-.ipynb_checkpoints/波浪理论策略1号-个股-checkpoint.ipynb
-__pycache__/utilsJ.cpython-38.pyc
-问题.md
-.ipynb_checkpoints/综合策略1号-个股-checkpoint.ipynb
-指标.md
+__pycache__/
+.ipynb_checkpoints/
 Data/
-.ipynb_checkpoints/综合策略1号-个股Lite-checkpoint.ipynb
-.ipynb_checkpoints/布林拐头1号-数据对齐-多股-checkpoint.ipynb
+问题.md
+指标.md
 sketch.ipynb
