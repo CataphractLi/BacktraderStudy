@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 import backtrader as bt
 import backtrader.indicators as btind
 
-# 价格动量类因子
+# 价格动量类指标
 
 class ER(bt.Indicator):
 
@@ -48,7 +48,7 @@ class POS(bt.Indicator):
 
 
 class TII(bt.Indicator):
-    
+
     #N1=40
     #M=[N1/2]+1
     #N2=9
@@ -79,6 +79,7 @@ class TII(bt.Indicator):
 
 
 class ADTM(bt.Indicator):
+    
     #N=20
     #DTM=IF(OPEN>REF(OPEN,1),MAX(HIGH-OPEN,OPEN-REF(OPEN,1)),0)
     #DBM=IF(OPEN<REF(OPEN,1),MAX(OPEN-LOW,REF(OPEN,1)-OPEN),0)
@@ -102,3 +103,32 @@ class ADTM(bt.Indicator):
         self.lines.ADTM = (STM-SBM)/bt.Max(STM, SBM)
         super(ADTM, self).__init__()
 
+
+# 价格翻转类指标
+
+class KDJ(bt.Indicator):
+    
+    #N=40
+    #LOW_N=MIN(LOW,N)
+    #HIGH_N=MAX(HIGH,N)
+    #Stochastics=(CLOSE-LOW_N)/(HIGH_N-LOW_N)*100
+    #K=SMA(Stochastics,3,1)
+    #D=SMA(K,3,1)
+
+    lines = ('K', 'D', 'KDJ_Buy', 'KDJ_Sell', )
+    
+    params = (('N', 40), )
+
+    def __init__(self):
+        low_n = btind.Lowest(self.data.low, self.p.N)
+        high_n = btind.Highest(self.data.high, self.p.N)
+        stochastics = (self.data.close - low_n) / (high_n - low_n) * 100
+        self.lines.K = stochastics / 3 + stochastics(-1) * 2 / 3
+        self.lines.D = self.lines.K / 3 + self.lines.K(-1) * 2 / 3
+        self.lines.KDJ_buy = bt.And(self.lines.D < 20, 
+                                    self.lines.K > self.lines.D, 
+                                    self.lines.K(-1) < self.lines.D(-1))
+        self.lines.KDJ_sell = bt.And(self.lines.D > 80, 
+                                     self.lines.K < self.lines.D, 
+                                     self.lines.K(-1) > self.lines.D(-1))
+        super(KDJ, self).__init__()
