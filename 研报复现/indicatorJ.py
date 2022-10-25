@@ -184,7 +184,7 @@ class VMA(bt.Indicator):
 
     def __init__(self):
         self.lines.Price = (self.data.high + self.data.low + self.data.open + self.data.close) / 4
-        self.lines.VMA = self.SMA(self.lines.Price, period=self.p.N)
+        self.lines.VMA = btind.SMA(self.lines.Price, period=self.p.N)
         self.lines.Buy = bt.And(self.lines.Price > self.lines.VMA, self.lines.Price(-1) < self.lines.VMA(-1))
         self.lines.Sell = bt.And(self.lines.Price > self.lines.VMA, self.lines.Price(-1) < self.lines.VMA(-1))
         super(VMA, self).__init__()
@@ -252,7 +252,7 @@ class SROCVOL(bt.Indicator):
     params = (('N', 20), ('M', 10), )
 
     def __init__(self):
-        emap = btind.EMA(self.data.volume, self.p.N)
+        emap = btind.EMA(self.data.volume, period=self.p.N)
         self.lines.SROCVOL = (emap - emap(-self.p.M)) / emap(-self.p.M)
         self.lines.Buy = bt.And(self.lines.SROCVOL > 0, self.lines.SROCVOL(-1) < 0)
         self.lines.Sell = bt.And(self.lines.SROCVOL < 0, self.lines.SROCVOL(-1) > 0)
