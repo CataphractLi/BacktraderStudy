@@ -190,6 +190,71 @@ class VMA(bt.Indicator):
         super(VMA, self).__init__()
 
 
+class BIAS(bt.Indicator):
+    
+    # N=6，12，24
+    # BIAS(N)=(CLOSE-MA(CLOSE,N))/MA(CLOSE,N)*100
+
+    lines = ('BIASS', 'BIASM', 'BIASL', 'Buy', 'Sell', )
+
+    params = (('N', (6, 12, 24)), )
+
+    def __init__(self):
+        self.lines.BIASS = (self.data.close - btind.SMA(self.data.close, period=self.p.N[0])) / \
+                           btind.SMA(self.data.close, period=self.p.N[0]) * 100
+        self.lines.BIASM = (self.data.close - btind.SMA(self.data.close, period=self.p.N[1])) / \
+                           btind.SMA(self.data.close, period=self.p.N[1]) * 100
+        self.lines.BIASL = (self.data.close - btind.SMA(self.data.close, period=self.p.N[2])) / \
+                           btind.SMA(self.data.close, period=self.p.N[2]) * 100
+        self.lines.Buy = bt.And(self.lines.BIASS > 5, self.lines.BIASM > 7, self.lines.BIASL > 11)
+        self.lines.Sell = bt.And(self.lines.BIASS < -5, self.lines.BIASM < -7, self.lines.BIASL < -11)
+        super(BIAS, self).__init__()
+
+
+class TMA(bt.Indicator):
+
+    # N=20
+    # CLOSE_MA=MA(CLOSE,N)
+    # TMA=MA(CLOSE_MA,N)
+
+    lines = ('TMA', 'Buy', 'Sell', )
+
+    params = (('N', 20), )
+
+    def __init__(self):
+        close_ma = btind.SMA(self.data.close, period=self.p.N)
+        self.lines.TMA = btind.SMA(close_ma, period=self.p.N)
+        self.lines.Buy = bt.And(self.data.close > self.lines.TMA, 
+                                self.data.close(-1) < self.lines.TMA(-1))
+        self.lines.Sell = bt.And(self.data.close < self.lines.TMA, 
+                                self.data.close(-1) > self.lines.TMA(-1))
+        super(TMA, self).__init__()
+
+
+class TYP(bt.Indicator):
+
+    # N1=10
+    # N2=30
+    # TYP=(CLOSE+HIGH+LOW)/3
+    # TYPMA1=EMA(TYP,N1)
+    # TYPMA2=EMA(TYP,N2)
+
+    lines = ('TYPMA1', 'TYPMA2', 'Buy', 'Sell', )
+
+    params = (('N1', 10), ('N2', 30), )
+
+    def __init__(self):
+        typ = (self.data.close + self.data.high + self.data.low) / 3
+        self.lines.TYPMA1 = btind.EMA(typ, period=self.p.N1)
+        self.lines.TYPMA2 = btind.EMA(typ, period=self.p.N2)
+        self.lines.Buy = bt.And(self.lines.TYPMA1 > self.lines.TYPMA2, 
+                                self.lines.TYPMA1(-1) < self.lines.TYPMA2(-1))
+        self.lines.Sell = bt.And(self.lines.TYPMA1 < self.lines.TYPMA2, 
+                                 self.lines.TYPMA1(-1) > self.lines.TYPMA2(-1))
+        super(TYP, self).__init__()
+
+
+
 # 价格翻转类指标
 
 class KDJ(bt.Indicator):
