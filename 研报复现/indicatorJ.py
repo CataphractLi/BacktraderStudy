@@ -301,6 +301,22 @@ class PAC(bt.Indicator):
         self.lines.Sell[0] = self.data.close[0] < self.lines.Lower[0] and self.data.close[-1] > self.lines.Lower[-1]
 
 
+class MTM(bt.Indicator):
+
+    # N=60
+    # MTM=CLOSE-REF(CLOSE,N)
+
+    lines = ('MTM', 'Buy', 'Close', )
+
+    params = (('N', 60), )
+
+    def __init__(self):
+        self.lines.MTM = self.data.close - self.data.close(-self.p.N)
+        self.lines.Buy = bt.And(self.lines.MTM > 0, self.lines.MTM(-1) < 0)
+        self.lines.Sell = bt.And(self.lines.MTM < 0, self.lines.MTM(-1) > 0)
+        super(MTM, self).__init__()
+
+
 # 价格翻转类指标
 
 class KDJ(bt.Indicator):
