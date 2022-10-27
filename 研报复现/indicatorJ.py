@@ -1,6 +1,7 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 import backtrader as bt
 import backtrader.indicators as btind
+import numpy as np
 
 # 价格动量类指标
 ## 可直接引用指标: PriceOscillator
@@ -254,6 +255,51 @@ class TYP(bt.Indicator):
         super(TYP, self).__init__()
 
 
+class WMA_BS(bt.Indicator):
+    
+    # N=20
+    # WMA=(N*CLOSE+(N-1)*REF(CLOSE,1)+...+1*REF(CLOSE,N-1))/(1+2+...+N)
+
+    lines = ('WMABS', 'Buy', 'Sell', )
+
+    params = (('N', 10), )
+
+    def __init__(self):
+        self.lines.WMABS = btind.WeightedMovingAverage(self.data.close, period=self.p.N)
+        self.lines.Buy = bt.And(self.data.close > self.lines.WMABS, 
+                                self.data.close(-1) < self.lines.WMABS(-1))
+        self.lines.Sell = bt.And(self.data.close < self.lines.WMABS, 
+                                 self.data.close(-1) > self.lines.WMABS(-1))
+        super(WMA_BS, self).__init__()
+
+
+class PAC(bt.Indicator):
+
+    #N1=20
+    #N2=20
+    #UPPER=SMA(HIGH,N1,1)
+    #LOWER=SMA(LOW,N2,1)
+
+    lines = ('Upper', 'Lower', 'Buy', 'Sell', )
+
+    params = (('N1', 20), ('N2', 20), )
+
+    def __init__(self):
+        self.addminperiod(2)
+        super(PAC, self).__init__()
+
+    def prenext(self):
+        self.lines.Upper[0] = self.data.high[0]
+        self.lines.Lower[0] = self.data.low[0]
+        self.lines.Buy[0] = False
+        self.lines.Sell[0] = False
+
+    def next(self):
+        self.lines.Upper[0] = 1 / self.p.N1 * self.data.high[0] + (self.p.N1 - 1) / self.p.N1 * self.lines.Upper[-1]
+        self.lines.Lower[0] = 1 / self.p.N2 * self.data.low[0] + (self.p.N2 - 1) / self.p.N2 * self.lines.Lower[-1]
+        self.lines.Buy[0] = self.data.close[0] > self.lines.Upper[0] and self.data.close[-1] < self.lines.Upper[-1]
+        self.lines.Sell[0] = self.data.close[0] < self.lines.Lower[0] and self.data.close[-1] > self.lines.Lower[-1]
+
 
 # 价格翻转类指标
 
@@ -273,16 +319,23 @@ class KDJ(bt.Indicator):
     def __init__(self):
         low_n = btind.Lowest(self.data.low, period=self.p.N)
         high_n = btind.Highest(self.data.high, period=self.p.N)
-        stochastics = (self.data.close - low_n) / (high_n - low_n) * 100
-        self.lines.K = stochastics / 3 + stochastics(-1) * 2 / 3
-        self.lines.D = self.lines.K / 3 + self.lines.K(-1) * 2 / 3
-        self.lines.Buy = bt.And(self.lines.D < 20, 
-                                self.lines.K > self.lines.D, 
-                                self.lines.K(-1) < self.lines.D(-1))
-        self.lines.Sell = bt.And(self.lines.D > 80, 
-                                 self.lines.K < self.lines.D, 
-                                 self.lines.K(-1) > self.lines.D(-1))
+        self.stochastics = (self.data.close - low_n) / (high_n - low_n) * 100
         super(KDJ, self).__init__()
+
+
+    def nextstart(self):
+        self.lines.K[-1] = self.stochastics[0]
+        self.lines.D[-1] = self.stochastics[0]
+        self.lines.Buy[0] = False
+        self.lines.Sell[0] = False
+        self.next()
+
+
+    def next(self):
+        self.lines.K[0] = self.stochastics[0] / 3 + self.lines.K[-1] * 2 / 3
+        self.lines.D[0] = self.lines.K[0] / 3 + self.lines.D[-1] * 2 / 3
+        self.lines.Buy[0] = self.lines.D[0] < 20 and self.lines.K[0] > self.lines.D[0] and self.lines.K[-1] < self.lines.D[-1]
+        self.lines.Sell[0] = self.lines.D[0] > 80 and self.lines.K[0] < self.lines.D[0] and self.lines.K[-1] > self.lines.D[-1]
 
 
 # 成交量指标
