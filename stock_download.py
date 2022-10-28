@@ -21,5 +21,6 @@ if __name__ == '__main__':
     pro = ts.pro_api(token)
     stock_list = pro.query('stock_basic', exchange='', list_status='L', fields='ts_code,list_date')
     for index, stock in stock_list.iterrows():
-        utilsJ.stock_tushare(token, stock.ts_code, datetime.datetime.strptime(stock.list_date, '%Y%m%d'), e_date).to_csv('.\\Data\\'+stock.ts_code+'.csv')
+        if 'BJ' not in stock.ts_code:
+            utilsJ.stock_tushare(token, stock.ts_code, datetime.datetime.strptime(stock.list_date, '%Y%m%d'), e_date).to_csv('.\\Data\\'+stock.ts_code+'.csv')
         time.sleep(0.5)

@@ -289,10 +289,11 @@ class PAC(bt.Indicator):
         super(PAC, self).__init__()
 
     def prenext(self):
-        self.lines.Upper[0] = self.data.high[0]
-        self.lines.Lower[0] = self.data.low[0]
-        self.lines.Buy[0] = False
-        self.lines.Sell[0] = False
+        self.lines.Upper[-1] = self.data.high[0]
+        self.lines.Lower[-1] = self.data.low[0]
+        self.lines.Buy[-1] = False
+        self.lines.Sell[-1] = False
+        self.next()
 
     def next(self):
         self.lines.Upper[0] = 1 / self.p.N1 * self.data.high[0] + (self.p.N1 - 1) / self.p.N1 * self.lines.Upper[-1]
@@ -342,8 +343,8 @@ class KDJ(bt.Indicator):
     def nextstart(self):
         self.lines.K[-1] = self.stochastics[0]
         self.lines.D[-1] = self.stochastics[0]
-        self.lines.Buy[0] = False
-        self.lines.Sell[0] = False
+        self.lines.Buy[-1] = False
+        self.lines.Sell[-1] = False
         self.next()
 
 
@@ -352,6 +353,93 @@ class KDJ(bt.Indicator):
         self.lines.D[0] = self.lines.K[0] / 3 + self.lines.D[-1] * 2 / 3
         self.lines.Buy[0] = self.lines.D[0] < 20 and self.lines.K[0] > self.lines.D[0] and self.lines.K[-1] < self.lines.D[-1]
         self.lines.Sell[0] = self.lines.D[0] > 80 and self.lines.K[0] < self.lines.D[0] and self.lines.K[-1] > self.lines.D[-1]
+
+
+class RMI(bt.Indicator):
+    
+    #N=7
+    #RMI=SMA(MAX(CLOSE-REF(CLOSE,4),0),N,1)/SMA(ABS(CLOSE-REF(CLOSE,1)),N,1)*100
+
+    lines = ('num', 'dnm', 'RMI', 'Buy', 'Sell', )
+
+    params = (('N', 7), )
+
+
+    def __init__(self):
+        super(RMI, self).__init__()
+
+
+    def nextstart(self):
+        self.lines.num[-1] = max(self.data.close[0] - self.data.close[-4],0)
+        self.lines.dnm[-1] = abs(self.data.close[0] - self.data.close[-1])
+        self.lines.RMI[-1] = self.lines.num[0] / self.lines.dnm[0] * 100 
+        self.lines.Buy[-1] = False
+        self.lines.Sell[-1] = False
+        self.next()
+
+
+    def next(self):
+        self.lines.num[0] = max(self.data.close[0] - self.data.close[-4], 0) * 1 / self.p.N + \
+                            self.lines.num[-1] * (self.p.N-1) / self.p.N
+        self.lines.dnm[0] = abs(self.data.close[0] - self.data.close[-1]) * 1 / self.p.N + \
+                            self.lines.dnm[-1] * (self.p.N-1) / self.p.N
+        self.lines.RMI[0] = self.lines.num[0] / self.lines.dnm[0] * 100
+        self.lines.Buy[0] = self.lines.RMI[0] > 65 and self.lines.RMI[-1] < 65
+        self.lines.Sell[0] = self.lines.RMI[0] < 35 and self.lines.RMI[-1] > 35
+
+
+class SKDJ(bt.Indicator):
+
+    #N=60
+    #RSV=(CLOSE-MIN(LOW,N))/(MAX(HIGH,N)-MIN(LOW,N))*100
+    #MARSV=SMA(RSV,3,1)
+    #K=SMA(MARSV,3,1)
+    #D=MA(K,3)
+
+    lines = ('RSV', 'MARSV', 'K', 'D', 'Buy', 'Sell', )
+
+    params = (('N', 60), )
+
+    def __init__(self):
+        self.lines.RSV = (self.data.close - btind.Lowest(self.data.low, period=self.p.N)) / \
+                         (btind.Highest(self.data.high, period=self.p.N)-btind.Lowest(self.data.low, period=self.p.N)) * 100
+        super(SKDJ, self).__init__()
+    
+    def nextstart(self):
+        self.lines.MARSV[-1] = self.lines.RSV[0]
+        self.lines.K[-1] = self.lines.MARSV[-1]
+        self.lines.D[-1] = self.lines.MARSV[-1]
+        self.lines.Buy[-1] = False
+        self.lines.Sell[-1] = False
+        self.next()
+
+    def next(self):
+        self.lines.MARSV[0] = self.lines.RSV[0] / 3  + self.lines.MARSV[-1] * 2 / 3
+        self.lines.K[0] = self.lines.MARSV[0] / 3 + self.lines.K[-1] * 2 / 3
+        self.lines.D[0] = (self.lines.K[0] + self.lines.K[-1] + self.lines.K[-2]) / 3
+        self.lines.Buy[0] = self.lines.D[0] < 40 and self.lines.K[0] > self.lines.D[0] and self.lines.K[-1] < self.lines.D[-1]
+        self.lines.Sell[0] = self.lines.D[0] > 60 and self.lines.K[0] < self.lines.D[0] and self.lines.K[-1] > self.lines.D[-1]
+
+
+class CCI(bt.Indicator):
+
+    #N=14
+    #TP=(HIGH+LOW+CLOSE)/3
+    #MA=MA(TP,N)
+    #MD=MA(ABS(TP-MA),N)
+    #CCI=(TP-MA)/(0.015MD)
+
+    lines = ('CCI', 'Buy', 'Sell', )
+
+    params = (('N', 14), )
+
+    def __init__(self):
+        tp = (self.data.high + self.data.low + self.data.close) / 3
+        ma = btind.SMA(tp, period=self.p.N)
+        md = btind.SMA(bt.If(tp - ma >= 0, tp - ma, ma - tp), period=self.p.N)
+        self.lines.CCI = (tp-ma) / (0.015 * md)
+        self.lines.Buy = bt.And(self.lines.CCI < -100, self.lines.CCI(-1) > -100)
+        self.lines.Sell = bt.And(self.lines.CCI > 100, self.lines.CCI(-1) < 100)
 
 
 # 成交量指标
