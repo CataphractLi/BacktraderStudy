@@ -3,8 +3,24 @@ import backtrader as bt
 import backtrader.indicators as btind
 import numpy as np
 
+# Base functions
+
+class SMA_GF(bt.Indicator):
+    # SMA=M/N*X+(N-M)/N*REF(SMA,1)
+
+    lines = ('SMA_GF', )
+
+    params = (('N', 2), ('M', 1), )
+
+    def __init__(self):
+        self.lines.SMA_GF = self.p.M / self.p.N * self.data + \
+                           (self.p.N - self.p.M) / self.p.N * self.data(-1)
+        super(SMA_GF, self).__init__()
+
+
 # 价格动量类指标
-## 可直接引用指标: PriceOscillator
+## 已导入：ER, DPO, POS, TII, ADTM, PO(PO_BS), MADisplaced, T3, VMA, BIAS, TMA, TYP, WMA (WMA_BS)
+## PAC, MTM
 
 class ER(bt.Indicator):
 
@@ -52,7 +68,8 @@ class POS(bt.Indicator):
 
     def __init__(self):
         price = (self.data.close - self.data.close(-self.p.N)) / self.data.close(-self.p.N)
-        self.lines.POS = (price - btind.Lowest(price, period=self.p.N)) / (btind.Highest(price, period=self.p.N) - btind.Lowest(price, period=self.p.N)) * 100
+        self.lines.POS = (price - btind.Lowest(price, period=self.p.N)) / \
+                         (btind.Highest(price, period=self.p.N) - btind.Lowest(price, period=self.p.N)) * 100
         self.lines.Buy = bt.And(self.lines.POS > 80, self.lines.POS(-1) < 80)
         self.lines.Sell = bt.And(self.lines.POS < 20, self.lines.POS(-1) > 20)
         super(POS, self).__init__()
@@ -75,11 +92,6 @@ class TII(bt.Indicator):
     lines = ('TII', 'TII_Signal', 'Buy', 'Sell', )
 
     params = (('N1', 40), ('N2', 9), )
-        
-        #self.TII_buy = bt.And(self.TII.lines.TII > self.TII.lines.TII_Signal, 
-        #                      self.TII.lines.TII(-1) < self.TII.lines.TII_Signal(-1))
-        #self.TII_sell = bt.And(self.TII.lines.TII < self.TII.lines.TII_Signal, 
-        #                       self.TII.lines.TII(-1) > self.TII.lines.TII_Signal(-1))
 
     def __init__(self):
         M = self.p.N1 // 2 + 1
@@ -113,10 +125,10 @@ class ADTM(bt.Indicator):
 
     def __init__(self):
         DTM = bt.If(self.data.open > self.data.open(-1), 
-                    bt.Max(self.data.high-self.data.open, self.data.open-self.data.open(-1)), 
+                    bt.Max(self.data.high-self.data.open, self.data.open-self.data.open(-1)),
                     0)
         DBM = bt.If(self.data.open < self.data.open(-1), 
-                    bt.Max(self.data.open-self.data.low, self.data.open(-1)-self.data.open), 
+                    bt.Max(self.data.open-self.data.low, self.data.open(-1)-self.data.open),
                     0)
         STM = btind.SumN(DTM, period=self.p.N)
         SBM = btind.SumN(DBM, period=self.p.N)
@@ -126,6 +138,24 @@ class ADTM(bt.Indicator):
         self.lines.Sell = bt.And(self.lines.ADTM < -0.5,
                                  self.lines.ADTM(-1) > -0.5)
         super(ADTM, self).__init__()
+
+
+class PO_BS(bt.Indicator):
+
+    # EMA_Short=EMA(CLOSE,9)
+    # EMA_LONG=EMA(CLOSE,26)
+    # PO=(EMA_SHORT-EMA_LONG)/EMA_LONG*100
+
+    lines = ('PO', 'Buy', 'Sell', )
+
+    params = (('N1', 9), ('N2', 26), )
+
+    def __init__(self):
+        EMA_short = btind.EMA(self.data.close, period=self.p.N1)
+        EMA_long = btind.EMA(self.data.close, period=self.p.N2)
+        self.lines.PO = (EMA_short - EMA_long) / EMA_long * 100
+        self.lines.Buy = bt.And(self.lines.PO > 0, self.lines.PO(-1) < 0)
+        self.lines.Sell = bt.And(self.lines.PO < 0, self.lines.PO(-1) > 0)
 
 
 class MADisplaced(bt.Indicator):
@@ -285,21 +315,13 @@ class PAC(bt.Indicator):
     params = (('N1', 20), ('N2', 20), )
 
     def __init__(self):
-        self.addminperiod(2)
+        self.lines.Upper = SMA_GF(self.data.high, N=self.p.N1, M=1)
+        self.lines.Lower = SMA_GF(self.data.low, N=self.p.N2, M=1)
+        self.lines.Buy = bt.And(self.data.close > self.lines.Upper, 
+                                self.data.close(-1) < self.lines.Upper(-1))
+        self.lines.Sell = bt.And(self.data.close < self.lines.Lower, 
+                                 self.data.close(-1) > self.lines.Lower(-1))
         super(PAC, self).__init__()
-
-    def prenext(self):
-        self.lines.Upper[-1] = self.data.high[0]
-        self.lines.Lower[-1] = self.data.low[0]
-        self.lines.Buy[-1] = False
-        self.lines.Sell[-1] = False
-        self.next()
-
-    def next(self):
-        self.lines.Upper[0] = 1 / self.p.N1 * self.data.high[0] + (self.p.N1 - 1) / self.p.N1 * self.lines.Upper[-1]
-        self.lines.Lower[0] = 1 / self.p.N2 * self.data.low[0] + (self.p.N2 - 1) / self.p.N2 * self.lines.Lower[-1]
-        self.lines.Buy[0] = self.data.close[0] > self.lines.Upper[0] and self.data.close[-1] < self.lines.Upper[-1]
-        self.lines.Sell[0] = self.data.close[0] < self.lines.Lower[0] and self.data.close[-1] > self.lines.Lower[-1]
 
 
 class MTM(bt.Indicator):
@@ -319,6 +341,7 @@ class MTM(bt.Indicator):
 
 
 # 价格翻转类指标
+## 已导入: KDJ, RMI, SKDJ, CCI
 
 class KDJ(bt.Indicator):
     
@@ -336,7 +359,11 @@ class KDJ(bt.Indicator):
     def __init__(self):
         low_n = btind.Lowest(self.data.low, period=self.p.N)
         high_n = btind.Highest(self.data.high, period=self.p.N)
-        self.stochastics = (self.data.close - low_n) / (high_n - low_n) * 100
+        stochastics = (self.data.close - low_n) / (high_n - low_n) * 100
+        self.lines.K = SMA_GF(stochastics, N=3, M=1)
+        self.lines.D = SMA_GF(self.lines.K, N=3, M=1)
+        self.lines.Buy = bt.And(self.lines.D < 20 and self.lines.K > self.lines.D and self.lines.K(-1) < self.lines.D(-1))
+        self.lines.Sell = bt.And(self.lines.D > 80 and self.lines.K < self.lines.D and self.lines.K(-1) > self.lines.D(-1))
         super(KDJ, self).__init__()
 
 
@@ -442,7 +469,18 @@ class CCI(bt.Indicator):
         self.lines.Sell = bt.And(self.lines.CCI > 100, self.lines.CCI(-1) < 100)
 
 
+class RSI_BS(bt.Indicator):
+    
+    #CLOSEUP=IF(CLOSE>REF(CLOSE,1),CLOSE-REF(CLOSE,1),0)
+    #CLOSEDOWN=IF(CLOSE<REF(CLOSE,1),ABS(CLOSE-REF(CLOSE,1)),0)
+    #CLOSEUP_MA=SMA(CLOSEUP,N,1)
+    #CLOSEDOWN_MA=SMA(CLOSEDOWN,N,1)
+    #RSI=100*CLOSEUP_MA/(CLOSEUP_MA+CLOSEDOWN_MA)
+
+    lines = ('RSI', )
+
 # 成交量指标
+## 已导入: MAAMT, SROCVOL
 
 class MAAMT(bt.Indicator):
     
