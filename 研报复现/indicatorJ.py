@@ -367,21 +367,6 @@ class KDJ(bt.Indicator):
         super(KDJ, self).__init__()
 
 
-    def nextstart(self):
-        self.lines.K[-1] = self.stochastics[0]
-        self.lines.D[-1] = self.stochastics[0]
-        self.lines.Buy[-1] = False
-        self.lines.Sell[-1] = False
-        self.next()
-
-
-    def next(self):
-        self.lines.K[0] = self.stochastics[0] / 3 + self.lines.K[-1] * 2 / 3
-        self.lines.D[0] = self.lines.K[0] / 3 + self.lines.D[-1] * 2 / 3
-        self.lines.Buy[0] = self.lines.D[0] < 20 and self.lines.K[0] > self.lines.D[0] and self.lines.K[-1] < self.lines.D[-1]
-        self.lines.Sell[0] = self.lines.D[0] > 80 and self.lines.K[0] < self.lines.D[0] and self.lines.K[-1] > self.lines.D[-1]
-
-
 class RMI(bt.Indicator):
     
     #N=7
