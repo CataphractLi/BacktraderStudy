@@ -19,19 +19,24 @@ import backtrader as bt
 def ts_fit(data):
     '''
     对Tushare上获得的数据进行统一整理，使符合Backtrader的要求。
-    主要步骤有：设定日期索引，规范列名，从小到大排列
+    主要步骤有：设定日期索引，从小到大排列，浮点数化
     输入：调整之前的DataFrame
     输出：调整过后的DataFrame
     '''
     data.set_index(pd.to_datetime(data[data.columns[0]]), inplace=True)
     data.index.name = 'datetime'
-    data.drop(columns=[data.columns[0]], axis=1, inplace = True)
-    data.rename(columns={'vol':'volume'}, inplace=True)
-    data = data.astype('float')
-    return data.iloc[::-1]
+    data.drop(columns=[data.columns[0]], axis=1, inplace=True)
+    if 'vol' in data.columns:
+        data.rename(columns = {'vol':'volume'}, inplace=True)
+    try:
+        data = data.astype('float')
+        return data.iloc[::-1]
+    except:
+        return data.iloc[::-1]
 
 
 # 数据下载
+## 行情数据
 def future_ts(token, future_index,
               start=dt.datetime.now()-dt.timedelta(days=365),
               end=dt.datetime.now(),
@@ -70,7 +75,7 @@ def index_ts(token, index_code,
 def stock_ts(token, stock_code,fq='D',
              start=dt.datetime.now()-dt.timedelta(days=365),
              end=dt.datetime.now(),
-             flds='trade_time,open,high,low,close,vol'):
+             flds='trade_date,open,high,low,close,vol'):
     '''
     从Tushare下载股票行情数据。
     输入：Tushare token, 股票代码，数据频次，开始日期，结束日期, 数据字段
@@ -97,7 +102,7 @@ def index_comp_ts(token, stock_index, time_sleep=0.5,
     '''
     从Tushare下载指数成分股的行情数据。
     输入：Tushare token, 指数代码，数据频次，查询间隔，开始日期，结束日期，是否下载，存储路径
-    输出：包含成分股数据的字典(或本地数据文件）
+    输出：包含成分股数据的字典(或同时生成本地数据文件）
     '''
     if download and not os.path.exists(fpath.rstrip('\\')):
         os.mkdir(fpath.rstrip('\\'))
@@ -115,61 +120,19 @@ def index_comp_ts(token, stock_index, time_sleep=0.5,
     return result
 
 
-def stock_finance(token, stock_code,
-                  start=dt.datetime.now()-dt.timedelta(days=365),
-                  end=dt.datetime.now()):
+## 基本面数据
+def finance_ts(token, stock_code,
+               flds='end_date,eps,netprofit_margin,roe_dt',
+               start=dt.datetime.now()-dt.timedelta(days=365),
+               end=dt.datetime.now()):
+    '''
+    从Tushare下载个股的基本面数据。
+    输入：Tushare token，股票代码，数据字段，开始日期，结束日期
+    输出：个股的基本面指标
+    '''
     ts.set_token(token)
     pro = ts.pro_api()
     df = pro.fina_indicator(ts_code=stock_code, 
                             start_date=start.strftime('%Y%m%d'),
-                            end_date=end.strftime('%Y%m%d'))[['end_date', 'eps', 'netprofit_margin', 'roe_dt']].dropna().drop_duplicates()
-    df.rename(columns = {'end_date':'trade_date'}, inplace = True)
-    df['trade_date'] = pd.to_datetime(df.trade_date)
-    df.index=pd.to_datetime(df.trade_date)
-    df.drop('trade_date', axis=1, inplace = True)
-    df = df.astype('float')
-    return df[::-1]
-
-
-def stock_finace_full(token, stock_code,
-                  fields=['end_date', 'eps', 'netprofit_margin', 'roe_dt'],
-                  start=dt.datetime.now()-dt.timedelta(days=365),
-                  end=dt.datetime.now()):
-    ts.set_token(token)
-    pro = ts.pro_api()
-    df = pro.fina_indicator(ts_code=stock_code, 
-                            start_date=start.strftime('%Y%m%d'),
-                            end_date=end.strftime('%Y%m%d'))[fields].dropna().drop_duplicates()
-    df.rename(columns = {'end_date':'trade_date'}, inplace = True)
-    df['trade_date'] = pd.to_datetime(df.trade_date)
-    df.index=pd.to_datetime(df.trade_date)
-    df.drop('trade_date', axis=1, inplace = True)
-#    df = df.astype('float')
-    return df[::-1]
-
-
-#
-class Data_Base(bt.feeds.PandasData):
-    '''
-
-    '''
-
-    params = (
-        # Possible values for datetime (must always be present)
-        #  None : datetime is the "index" in the Pandas Dataframe
-        #  -1 : autodetect position or case-wise equal name
-        #  >= 0 : numeric index to the colum in the pandas dataframe
-        #  string : column name (as index) in the pandas dataframe
-        ('datetime', None),
-
-        # Possible values below:
-        #  None : column not present
-        #  -1 : autodetect position or case-wise equal name
-        #  >= 0 : numeric index to the colum in the pandas dataframe
-        #  string : column name (as index) in the pandas dataframe
-        ('open', -1),
-        ('high', -1),
-        ('low', -1),
-        ('close', -1),
-        ('volume', None),
-    )
+                            end_date=end.strftime('%Y%m%d'))[flds.split(',')].dropna().drop_duplicates()
+    return ts_fit(df)
