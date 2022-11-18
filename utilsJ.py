@@ -37,16 +37,16 @@ def ts_fit(data):
 
 # 数据下载
 ## 行情数据
-def future_ts(token, future_index,
+def future_ts(future_index,
               start=dt.datetime.now()-dt.timedelta(days=365),
               end=dt.datetime.now(),
               flds='trade_date,open,high,low,close,vol'):
     '''
     从Tushare下载期货日线行情数据。
-    输入：Tushare token, 期货合约代码，开始日期，结束日期，数据字段
+    输入：期货合约代码，开始日期，结束日期，数据字段
     输出：期货日线行情数据(DataFrame)
     '''
-    pro = ts.pro_api(token)
+    pro = ts.pro_api(load_token)
     df = pro.fut_daily(ts_code=future_index, 
                        fields=flds,
                        start_date=start.strftime('%Y%m%d'), 
@@ -54,17 +54,16 @@ def future_ts(token, future_index,
     return ts_fit(df)
 
 
-def index_ts(token, index_code,
+def index_ts(index_code,
              start=dt.datetime.now()-dt.timedelta(days=365),
              end=dt.datetime.now(),
              flds='trade_date,open,high,low,close,vol'):
     '''
     从Tushare下载指数日线数据。
-    输入：Tushare token, 指数代码，开始日期，结束日期，数据字段
+    输入：指数代码，开始日期，结束日期，数据字段
     输出：指数日线行情数据(DataFrame)
     '''
-    ts.set_token(token)
-    pro = ts.pro_api()
+    pro = ts.pro_api(load_token)
     df = pro.index_daily(ts_code=index_code,
                          fields=flds,
                          start_date=start.strftime('%Y%m%d'),
@@ -72,18 +71,41 @@ def index_ts(token, index_code,
     return ts_fit(df)
 
 
-def stock_ts(token, stock_code,fq='D',
+def index_comp_ts(stock_index, time_sleep=0.5,
+                  start=dt.datetime.now()-dt.timedelta(days=365),
+                  end=dt.datetime.now(), download=False, fpath='.\\Data\\'):
+    '''
+    从Tushare下载指数成分股的行情数据。
+    输入：指数代码，数据频次，查询间隔，开始日期，结束日期，是否下载，存储路径
+    输出：包含成分股数据的字典(或同时生成本地数据文件）
+    '''
+    if download and not os.path.exists(fpath.rstrip('\\')):
+        os.mkdir(fpath.rstrip('\\'))
+    pro = ts.pro_api(load_token)
+    index_list = np.unique(pro.index_weight(index_code=stock_index,
+                                            start_date=start.strftime('%Y%m%d'),
+                                            end_date=end.strftime('%Y%m%d')).con_code).tolist()
+    result = dict()
+    for s_code in index_list:
+        df = stock_ts(s_code, start, end)
+        result[s_code] = df
+        if download:
+            df.to_csv(fpath + s_code + '.csv')
+        time.sleep(time_sleep)
+    return result
+
+
+def stock_ts(stock_code,fq='D',
              start=dt.datetime.now()-dt.timedelta(days=365),
              end=dt.datetime.now(),
              flds='trade_date,open,high,low,close,vol'):
     '''
     从Tushare下载股票行情数据。
-    输入：Tushare token, 股票代码，数据频次，开始日期，结束日期, 数据字段
+    输入：股票代码，数据频次，开始日期，结束日期, 数据字段
     输出：股票行情数据(DataFrame)
     注：默认前复权，可在'adj'项中调整。
     '''
-    ts.set_token(token)
-    pro = ts.pro_api()
+    pro = ts.pro_api(load_token)
     try:
         df = ts.pro_bar(ts_code=stock_code,
                         adj='qfq',
@@ -96,43 +118,77 @@ def stock_ts(token, stock_code,fq='D',
         return pd.DataFrame()
 
 
-def index_comp_ts(token, stock_index, time_sleep=0.5,
-                  start=dt.datetime.now()-dt.timedelta(days=365),
-                  end=dt.datetime.now(), download=False, fpath='.\\Data\\'):
+def get_stock_list():
     '''
-    从Tushare下载指数成分股的行情数据。
-    输入：Tushare token, 指数代码，数据频次，查询间隔，开始日期，结束日期，是否下载，存储路径
-    输出：包含成分股数据的字典(或同时生成本地数据文件）
+    从Tushare下载当前在交易所交易的股票
+    输入：无
+    输出：包含股票代码的列表
+    注：剔除北交所交易的股票
     '''
-    if download and not os.path.exists(fpath.rstrip('\\')):
-        os.mkdir(fpath.rstrip('\\'))
-    pro = ts.pro_api(token)
-    index_list = np.unique(pro.index_weight(index_code=stock_index,
+    pro = ts.pro_api(load_token)
+    full_list = np.unique(pro.query('stock_basic', exchange='', list_status='L', fields='ts_code')).tolist()
+    return [x for x in full_list if 'BJ' not in x]
+
+
+def get_index_components(index_code, 
+                         start=dt.datetime.now()-dt.timedelta(days=365),
+                         end=dt.datetime.now()):
+    '''
+    从Tushare上下载指定区间对应指数的成分表
+    输入：指数代码，开始日期，结束日期
+    输出：
+    注：由于成分股会调整，该函数无法反映某支成分股被剔除/新加入的影响，从而导致选出比成分股个数稍多的股票。
+    例如：选出350支沪深300的成分股。
+    可能的解决办法：尽量缩小指定的时间区间
+    '''
+    pro = ts.pro_api(load_token)
+    index_list = np.unique(pro.index_weight(index_code=index_code,
                                             start_date=start.strftime('%Y%m%d'),
                                             end_date=end.strftime('%Y%m%d')).con_code).tolist()
-    result = dict()
-    for s_code in index_list:
-        df = stock_ts(token, s_code, start, end)
-        result[s_code] = df
-        if download:
-            df.to_csv(fpath + s_code + '.csv')
-        time.sleep(time_sleep)
-    return result
+    return index_list
 
 
 ## 基本面数据
-def finance_ts(token, stock_code,
+def finance_ts(stock_code,
                flds='end_date,eps,netprofit_margin,roe_dt',
                start=dt.datetime.now()-dt.timedelta(days=365),
                end=dt.datetime.now()):
     '''
     从Tushare下载个股的基本面数据。
-    输入：Tushare token，股票代码，数据字段，开始日期，结束日期
+    输入：股票代码，数据字段，开始日期，结束日期
     输出：个股的基本面指标
     '''
-    ts.set_token(token)
+    ts.set_token(load_token)
     pro = ts.pro_api()
     df = pro.fina_indicator(ts_code=stock_code, 
                             start_date=start.strftime('%Y%m%d'),
                             end_date=end.strftime('%Y%m%d'))[flds.split(',')].dropna().drop_duplicates()
     return ts_fit(df)
+
+
+# 数据读取
+def load_token():
+    '''
+    从本地读取Tushare token
+    输入：无
+    输出：Tushare token
+    '''
+    with open('token.txt', 'r') as f:
+        token = f.readline()
+    return token
+
+
+def get_stock(stock_code,
+              start=dt.datetime.now()-dt.timedelta(days=365), 
+              end=dt.datetime.now()):
+    '''
+    尝试从本地读取股票行情数据。如本地不存在，则从Tushare下载数据。
+    输入：股票代码，开始日期，结束日期
+    输出：股票行情数据
+    '''
+    if os.path.exists('.\\Data\\'+stock_code+'.csv'):
+        df = pd.read_csv('.\\Data\\'+stock_code+'.csv',
+                         converters={'datetime':lambda x:pd.to_datetime(x)}).set_index('datetime')
+        return df[(df.index >= start) & (df.index <= end)]
+    else:
+        return stock_ts(stock_code, start=start, end=end)
