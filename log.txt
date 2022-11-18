@@ -1,0 +1,2 @@
+2022-02-14: BUY CREATE, Price: 8.17, Lots: 100, Current Position: 0 
+2022-02-15: BUY EXECUTED, Price: 8.17, Lot:100, Cash: 9182, Value: 10003 

@@ -46,7 +46,7 @@ def future_ts(future_index,
     输入：期货合约代码，开始日期，结束日期，数据字段
     输出：期货日线行情数据(DataFrame)
     '''
-    pro = ts.pro_api(load_token)
+    pro = ts.pro_api(load_token())
     df = pro.fut_daily(ts_code=future_index, 
                        fields=flds,
                        start_date=start.strftime('%Y%m%d'), 
@@ -63,7 +63,7 @@ def index_ts(index_code,
     输入：指数代码，开始日期，结束日期，数据字段
     输出：指数日线行情数据(DataFrame)
     '''
-    pro = ts.pro_api(load_token)
+    pro = ts.pro_api(load_token())
     df = pro.index_daily(ts_code=index_code,
                          fields=flds,
                          start_date=start.strftime('%Y%m%d'),
@@ -81,7 +81,7 @@ def index_comp_ts(stock_index, time_sleep=0.5,
     '''
     if download and not os.path.exists(fpath.rstrip('\\')):
         os.mkdir(fpath.rstrip('\\'))
-    pro = ts.pro_api(load_token)
+    pro = ts.pro_api(load_token())
     index_list = np.unique(pro.index_weight(index_code=stock_index,
                                             start_date=start.strftime('%Y%m%d'),
                                             end_date=end.strftime('%Y%m%d')).con_code).tolist()
@@ -105,7 +105,7 @@ def stock_ts(stock_code,fq='D',
     输出：股票行情数据(DataFrame)
     注：默认前复权，可在'adj'项中调整。
     '''
-    pro = ts.pro_api(load_token)
+    pro = ts.pro_api(load_token())
     try:
         df = ts.pro_bar(ts_code=stock_code,
                         adj='qfq',
@@ -125,7 +125,7 @@ def get_stock_list():
     输出：包含股票代码的列表
     注：剔除北交所交易的股票
     '''
-    pro = ts.pro_api(load_token)
+    pro = ts.pro_api(load_token())
     full_list = np.unique(pro.query('stock_basic', exchange='', list_status='L', fields='ts_code')).tolist()
     return [x for x in full_list if 'BJ' not in x]
 
@@ -141,7 +141,7 @@ def get_index_components(index_code,
     例如：选出350支沪深300的成分股。
     可能的解决办法：尽量缩小指定的时间区间
     '''
-    pro = ts.pro_api(load_token)
+    pro = ts.pro_api(load_token())
     index_list = np.unique(pro.index_weight(index_code=index_code,
                                             start_date=start.strftime('%Y%m%d'),
                                             end_date=end.strftime('%Y%m%d')).con_code).tolist()
@@ -158,8 +158,7 @@ def finance_ts(stock_code,
     输入：股票代码，数据字段，开始日期，结束日期
     输出：个股的基本面指标
     '''
-    ts.set_token(load_token)
-    pro = ts.pro_api()
+    pro = ts.pro_api(load_token())
     df = pro.fina_indicator(ts_code=stock_code, 
                             start_date=start.strftime('%Y%m%d'),
                             end_date=end.strftime('%Y%m%d'))[flds.split(',')].dropna().drop_duplicates()
