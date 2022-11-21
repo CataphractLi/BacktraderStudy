@@ -14,7 +14,7 @@ import os
 # 基础函数
 import utilsJ
 
-startdate = dt.datetime(2000,1,1)
+startdate = dt.date(2000,1,1)
 enddate = dt.datetime.now()
 
 if __name__ == '__main__':
