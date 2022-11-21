@@ -37,7 +37,7 @@ def ts_fit(data:pd.DataFrame) -> pd.DataFrame:
 
 # 数据下载
 ## 行情数据
-def future_ts(future_code:str, start:dt.date, end:dt.date,
+def future_ts(future_code:str, start:dt.datetime, end:dt.datetime,
               flds:str='trade_date,open,high,low,close,vol') -> pd.DataFrame:
     '''
     从Tushare下载期货日线行情数据.
@@ -52,7 +52,7 @@ def future_ts(future_code:str, start:dt.date, end:dt.date,
     return ts_fit(df)
 
 
-def index_ts(index_code:str, start:dt.date, end:dt.date,
+def index_ts(index_code:str, start:dt.datetime, end:dt.datetime,
              flds:str='trade_date,open,high,low,close,vol') -> pd.DataFrame:
     '''
     从Tushare下载指数日线数据.
@@ -67,7 +67,7 @@ def index_ts(index_code:str, start:dt.date, end:dt.date,
     return ts_fit(df)
 
 
-def index_comp_ts(stock_index:str, start:dt.date, end:dt.date, 
+def index_comp_ts(stock_index:str, start:dt.datetime, end:dt.datetime, 
                   time_sleep:float=0.5, download:bool=False, fpath:str='.\\Data\\') -> pd.DataFrame:
     '''
     从Tushare下载指数成分股的行情数据.
@@ -90,7 +90,7 @@ def index_comp_ts(stock_index:str, start:dt.date, end:dt.date,
     return result
 
 
-def stock_ts(stock_code:str, start:dt.date, end:dt.date,
+def stock_ts(stock_code:str, start:dt.datetime, end:dt.datetime,
              fq:str='D', flds:str='trade_date,open,high,low,close,vol') -> pd.DataFrame:
     '''
     从Tushare下载股票行情数据.
@@ -123,7 +123,7 @@ def get_stock_list() -> list:
     return [x for x in full_list if 'BJ' not in x]
 
 
-def get_index_components(index_code:str, start:dt.date, end:dt.date) -> np.array:
+def get_index_components(index_code:str, start:dt.datetime, end:dt.datetime) -> np.array:
     '''
     从Tushare上下载指定区间对应指数的成分表.
     输入：指数代码,开始日期,结束日期
@@ -140,7 +140,7 @@ def get_index_components(index_code:str, start:dt.date, end:dt.date) -> np.array
 
 
 ## 基本面数据
-def finance_ts(stock_code:str, start:dt.time, end=dt.time,
+def finance_ts(stock_code:str, start:dt.datetime, end=dt.datetime,
                flds:str='end_date,eps,netprofit_margin,roe_dt') -> pd.DataFrame:
     '''
     从Tushare下载个股的基本面数据.
@@ -167,8 +167,8 @@ def load_token() -> str:
 
 
 def get_stock(stock_code:str,
-              start:dt.date, 
-              end:dt.date) -> pd.DataFrame:
+              start:dt.datetime, 
+              end:dt.datetime) -> pd.DataFrame:
     '''
     尝试从本地读取股票行情数据.如本地不存在,则从Tushare下载数据.
     输入:股票代码,开始日期,结束日期
