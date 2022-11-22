@@ -123,7 +123,7 @@ def get_stock_list() -> list:
     return [x for x in full_list if 'BJ' not in x]
 
 
-def get_index_components(index_code:str, start:dt.datetime, end:dt.datetime) -> np.array:
+def get_index_components(index_code:str, start:dt.datetime, end:dt.datetime) -> list:
     '''
     从Tushare上下载指定区间对应指数的成分表.
     输入：指数代码,开始日期,结束日期

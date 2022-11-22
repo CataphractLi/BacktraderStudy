@@ -1,3 +1,7 @@
+'''
+从Tushare下载从2000年1月1日至今的所有股票日线行情
+'''
+
 # 数据接口
 from math import floor
 import akshare as ak
@@ -14,7 +18,7 @@ import os
 # 基础函数
 import utilsJ
 
-startdate = dt.date(2000,1,1)
+startdate = dt.datetime(2000,1,1)
 enddate = dt.datetime.now()
 
 if __name__ == '__main__':

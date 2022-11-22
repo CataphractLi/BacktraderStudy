@@ -1,3 +1,7 @@
+'''
+从Tushare上下载全市场股票从2017年1月1日至2021年12月31日的30分钟线行情,并计算5日均线与MACD指标
+注：由于数据量太大，Tushare一次只能返回8000条数据，因此要分段下载，并最后将其整合
+'''
 # 数据接口
 from math import floor
 import akshare as ak
@@ -14,24 +18,23 @@ import os
 # 基础函数
 import utilsJ
 
-token = '74f1379591c9d810854fa5891fffcacaba514b82bf17ec2e239025b6'
-token2 = '904ff4752522814dca00e032a709fdfc26d8744913500ef204e02157'
-stock_filelist = os.listdir('.\\Data\\17-21_30min\\Int\\')
-
+stock_filelist = os.listdir('.\\Data\\17-21_30min')
+last_download  = '000001.SZ'
 short = 12
 long = 26
 period = 9
 
 if __name__ == '__main__':
-    pro = ts.pro_api(token)
-    stock_list = pro.query('stock_basic', exchange='', list_status='L', fields='ts_code,list_date')
-    added = False
-    for index, stock in stock_list.iterrows():
-        if stock.ts_code == '603396.SH':
-            added = True
-        if 'BJ' not in stock.ts_code and added:
+
+    # 分段下载30分钟行情
+    stock_list = utilsJ.get_stock_list()
+    not_download = False
+    for stock in stock_list:
+        if stock.ts_code == last_download: #避免重复下载
+            not_download = True
+        if not_download:
             for i in [2017, 2018, 2019, 2020, 2021]:
-                file_name = '.\\Data\\17-21_30min\\'+stock.ts_code+str(i)+'.csv'
+                file_name = '.\\Data\\17-21_30min\\'+stock+str(i)+'.csv'
                 if not os.path.exists(file_name):
                     print(file_name)
                     s_date = datetime.date(i,1,1)
