@@ -362,8 +362,8 @@ class KDJ(bt.Indicator):
         stochastics = (self.data.close - low_n) / (high_n - low_n) * 100
         self.lines.K = SMA_GF(stochastics, N=3, M=1)
         self.lines.D = SMA_GF(self.lines.K, N=3, M=1)
-        self.lines.Buy = bt.And(self.lines.D < 20 and self.lines.K > self.lines.D and self.lines.K(-1) < self.lines.D(-1))
-        self.lines.Sell = bt.And(self.lines.D > 80 and self.lines.K < self.lines.D and self.lines.K(-1) > self.lines.D(-1))
+        self.lines.Buy = bt.And(self.lines.D < 20, self.lines.K > self.lines.D, self.lines.K(-1) < self.lines.D(-1))
+        self.lines.Sell = bt.And(self.lines.D > 80, self.lines.K < self.lines.D, self.lines.K(-1) > self.lines.D(-1))
         super(KDJ, self).__init__()
 
 
