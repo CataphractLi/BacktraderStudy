@@ -168,14 +168,16 @@ def load_token() -> str:
 
 def get_stock(stock_code:str,
               start:dt.datetime, 
-              end:dt.datetime) -> pd.DataFrame:
+              end:dt.datetime,
+              path:str='.\\Data\\') -> pd.DataFrame:
     '''
     尝试从本地读取股票行情数据.如本地不存在,则从Tushare下载数据.
     输入:股票代码,开始日期,结束日期
     输出:股票行情数据
     '''
-    if os.path.exists('.\\Data\\'+stock_code+'.csv'):
-        df = pd.read_csv('.\\Data\\'+stock_code+'.csv',
+    stock_path = path + stock_code + '.csv'
+    if os.path.exists(stock_path):
+        df = pd.read_csv(stock_path,
                          converters={'datetime':lambda x:pd.to_datetime(x)}).set_index('datetime')
         return df[(df.index >= start) & (df.index <= end)]
     else:

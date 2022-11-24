@@ -90,3 +90,12 @@ data = btfeeds.YahooFinanceCSVData( # 数据来源 YahooFinance
    )
 ```
 
+### A Strategy (derived) class
+
+一个完整的策略类包含了以下几个部分：
+
++ `__init__`: 用于为策略创建指标和其他的计算支持。
++ `next`: 将策略运用到每一天的数据(bar)。
++ `start`: 在回测开始的时候运行
++ `stop`: 在回测结束的时候运行
++ `notify_order`: 用于在订单成交的时候发出提醒
