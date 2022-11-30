@@ -174,6 +174,7 @@ def get_stock(stock_code:str,
     尝试从本地读取股票行情数据.如本地不存在,则从Tushare下载数据.
     输入:股票代码,开始日期,结束日期
     输出:股票行情数据
+    注:默认路径格式为Windows, 可能需要调整斜杠方向
     '''
     stock_path = path + stock_code + '.csv'
     if os.path.exists(stock_path):
